@@ -41,14 +41,30 @@ UA_ConnectionConfig UA_ConnectionConfig_default;
  *        ``NULL``.
  * @param sendBufferSize The size in bytes for the network send buffer
  * @param recvBufferSize The size in bytes for the network receive buffer
- *
+ * @param custom_logger a loger configuration, provide NULL to use stdout
  */
 UA_EXPORT UA_StatusCode
 UA_ServerConfig_setMinimalCustomBuffer(UA_ServerConfig *config,
                                        UA_UInt16 portNumber,
                                        const UA_ByteString *certificate,
                                        UA_UInt32 sendBufferSize,
-                                       UA_UInt32 recvBufferSize);
+                                       UA_UInt32 recvBufferSize, 
+                                       const UA_Logger *custom_logger);
+
+/**
+ * @brief Creates a new server config with a custom logger and one enpoint
+ * 
+ * Similar as UA_ServerConfig_setMinimal, this config will set the tcp network 
+ * layer to the given port and adds a single endpoint with the security policy 
+ * ``SecurityPolicy#None`` to the server. A server certificate may be supplied 
+ * but it is optional. */
+static UA_INLINE UA_StatusCode
+UA_ServerConfig_setMinimalWithCustomLogger(UA_ServerConfig *config, UA_UInt16 portNumber,
+                           const UA_ByteString *certificate, const UA_Logger *custom_logger) {
+    return UA_ServerConfig_setMinimalCustomBuffer(config, portNumber,
+                                                  certificate, 0, 0, 
+                                                  custom_logger);
+}
 
 /* Creates a new server config with one endpoint.
  *
@@ -57,9 +73,9 @@ UA_ServerConfig_setMinimalCustomBuffer(UA_ServerConfig *config,
  * server certificate may be supplied but is optional. */
 static UA_INLINE UA_StatusCode
 UA_ServerConfig_setMinimal(UA_ServerConfig *config, UA_UInt16 portNumber,
-                           const UA_ByteString *certificate) {
-    return UA_ServerConfig_setMinimalCustomBuffer(config, portNumber,
-                                                  certificate, 0, 0);
+                           const UA_ByteString *certificate){
+    return UA_ServerConfig_setMinimalWithCustomLogger(config, portNumber,
+                                                  certificate, NULL);
 }
 
 #ifdef UA_ENABLE_ENCRYPTION
@@ -74,7 +90,8 @@ UA_ServerConfig_setDefaultWithSecurityPolicies(UA_ServerConfig *conf,
                                                const UA_ByteString *issuerList,
                                                size_t issuerListSize,
                                                const UA_ByteString *revocationList,
-                                               size_t revocationListSize);
+                                               size_t revocationListSize,
+                                               const UA_Logger *custom_logger);
 
 #endif
 
@@ -83,6 +100,13 @@ UA_ServerConfig_setDefaultWithSecurityPolicies(UA_ServerConfig *conf,
 static UA_INLINE UA_StatusCode
 UA_ServerConfig_setDefault(UA_ServerConfig *config) {
     return UA_ServerConfig_setMinimal(config, 4840, NULL);
+}
+
+/* Creates a server config on the default port 4840 with no server
+ * certificate and a custom logger. */
+static UA_INLINE UA_StatusCode
+UA_ServerConfig_setDefaultWithCustomLogger(UA_ServerConfig *config, const UA_Logger *custom_logger) {
+    return UA_ServerConfig_setMinimalWithCustomLogger(config, 4840, NULL, custom_logger);
 }
 
 /* Creates a new server config with no network layer and no endpoints.
@@ -94,7 +118,7 @@ UA_ServerConfig_setDefault(UA_ServerConfig *config) {
  * @param conf The configuration to manipulate
  */
 UA_EXPORT UA_StatusCode
-UA_ServerConfig_setBasics(UA_ServerConfig *conf);
+UA_ServerConfig_setBasics(UA_ServerConfig *conf, const UA_Logger *custom_logger);
 
 /* Adds a TCP network layer with custom buffer sizes
  *
