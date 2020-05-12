@@ -87,8 +87,8 @@ UA_PubSubChannelEthernet_open(const UA_PubSubConnectionConfig *connectionConfig)
     UA_PubSubChannelDataEthernet *channelDataEthernet =
         (UA_PubSubChannelDataEthernet *)UA_calloc(1, sizeof(*channelDataEthernet));
     if(!channelDataEthernet) {
-        UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub Connection creation failed. Out of memory.");
+        UA_LOG_ERROR (pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
+            "PubSub Connection creation failed. Out of memory.");
         return NULL;
     }
 
@@ -98,34 +98,30 @@ UA_PubSubChannelEthernet_open(const UA_PubSubConnectionConfig *connectionConfig)
                                 &UA_TYPES[UA_TYPES_NETWORKADDRESSURLDATATYPE])) {
         address = (UA_NetworkAddressUrlDataType *)connectionConfig->address.data;
     } else {
-        UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub Connection creation failed. Invalid Address.");
+        UA_LOG_ERROR (pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
+            "PubSub Connection creation failed. Invalid Address.");
         UA_free(channelDataEthernet);
         return NULL;
     }
-    UA_LOG_DEBUG(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                 "Specified Interface Name = %.*s", (int)address->networkInterface.length,
-                 address->networkInterface.data);
-    UA_LOG_DEBUG(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                 "Specified Network Url = %.*s", (int)address->url.length,
-                 address->url.data);
+    UA_LOG_DEBUG(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER, "Specified Interface Name = %.*s",
+         (int) address->networkInterface.length, address->networkInterface.data);
+    UA_LOG_DEBUG(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER, "Specified Network Url = %.*s",
+         (int)address->url.length, address->url.data);
 
     UA_String target;
     /* encode the URL and store information in internal structure */
     if(UA_parseEndpointUrlEthernet(&address->url, &target, &channelDataEthernet->vid,
                                    &channelDataEthernet->prio)) {
-        UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub Connection creation failed. Invalid Address URL.");
+        UA_LOG_ERROR (pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
+            "PubSub Connection creation failed. Invalid Address URL.");
         UA_free(channelDataEthernet);
         return NULL;
     }
 
     /* Get a valid MAC address from target definition */
-    if(UA_parseHardwareAddress(&target, channelDataEthernet->targetAddress) !=
-       UA_STATUSCODE_GOOD) {
-        UA_LOG_ERROR(
-            pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-            "PubSub Connection creation failed. Invalid destination MAC address.");
+    if(UA_parseHardwareAddress(&target, channelDataEthernet->targetAddress) != UA_STATUSCODE_GOOD) {
+        UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
+                     "PubSub Connection creation failed. Invalid destination MAC address.");
         UA_free(channelDataEthernet);
         return NULL;
     }
@@ -144,7 +140,7 @@ UA_PubSubChannelEthernet_open(const UA_PubSubConnectionConfig *connectionConfig)
     int sockFd = UA_socket(PF_PACKET, SOCK_RAW, 0);
     if(sockFd < 0) {
         UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub connection creation failed. Cannot create socket.");
+            "PubSub connection creation failed. Cannot create socket.");
         UA_free(channelDataEthernet);
         UA_free(newChannel);
         return NULL;
@@ -155,7 +151,7 @@ UA_PubSubChannelEthernet_open(const UA_PubSubConnectionConfig *connectionConfig)
     int opt = 1;
     if(UA_setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub connection creation failed. Cannot set socket reuse.");
+            "PubSub connection creation failed. Cannot set socket reuse.");
         UA_close(sockFd);
         UA_free(channelDataEthernet);
         UA_free(newChannel);
@@ -170,7 +166,7 @@ UA_PubSubChannelEthernet_open(const UA_PubSubConnectionConfig *connectionConfig)
 
     if(ioctl(sockFd, SIOCGIFINDEX, &ifreq) < 0) {
         UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub connection creation failed. Cannot get interface index.");
+           "PubSub connection creation failed. Cannot get interface index.");
         UA_close(sockFd);
         UA_free(channelDataEthernet);
         UA_free(newChannel);
@@ -180,8 +176,7 @@ UA_PubSubChannelEthernet_open(const UA_PubSubConnectionConfig *connectionConfig)
 
     /* determine own MAC address (source address for send) */
     if(ioctl(sockFd, SIOCGIFHWADDR, &ifreq) < 0) {
-        UA_LOG_ERROR(
-            pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
+        UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
             "PubSub connection creation failed. Cannot determine own MAC address.");
         UA_close(sockFd);
         UA_free(channelDataEthernet);
@@ -200,9 +195,9 @@ UA_PubSubChannelEthernet_open(const UA_PubSubConnectionConfig *connectionConfig)
     sll.sll_ifindex = channelDataEthernet->ifindex;
     sll.sll_protocol = htons(ETHERTYPE_UADP);
 
-    if(UA_bind(sockFd, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
+    if(UA_bind(sockFd, (struct sockaddr*)&sll, sizeof(sll)) < 0) {
         UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub connection creation failed. Cannot bind socket.");
+            "PubSub connection creation failed. Cannot bind socket.");
         UA_close(sockFd);
         UA_free(channelDataEthernet);
         UA_free(newChannel);
@@ -254,10 +249,8 @@ UA_PubSubChannelEthernet_regist(UA_PubSubChannel *channel,
     mreq.mr_alen = ETH_ALEN;
     memcpy(mreq.mr_address, channelDataEthernet->targetAddress, ETH_ALEN);
 
-    if(UA_setsockopt(channel->sockfd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, (char *)&mreq,
-                     sizeof(mreq)) < 0) {
-        UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub Connection regist failed. %s", strerror(errno));
+    if(UA_setsockopt(channel->sockfd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq)) < 0) {
+        UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER, "PubSub Connection regist failed. %s", strerror(errno));
         return UA_STATUSCODE_BADINTERNALERROR;
     }
 
@@ -285,10 +278,8 @@ UA_PubSubChannelEthernet_unregist(UA_PubSubChannel *channel,
     mreq.mr_alen = ETH_ALEN;
     memcpy(mreq.mr_address, channelDataEthernet->targetAddress, ETH_ALEN);
 
-    if(UA_setsockopt(channel->sockfd, SOL_PACKET, PACKET_DROP_MEMBERSHIP, (char *)&mreq,
-                     sizeof(mreq)) < 0) {
-        UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub Connection regist failed.");
+    if(UA_setsockopt(channel->sockfd, SOL_PACKET, PACKET_DROP_MEMBERSHIP, (char*) &mreq, sizeof(mreq)) < 0) { 
+        UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER, "PubSub Connection regist failed.");
         return UA_STATUSCODE_BADINTERNALERROR;
     }
 
@@ -347,9 +338,9 @@ UA_PubSubChannelEthernet_send(UA_PubSubChannel *channel,
 
     ssize_t rc;
     rc = UA_send(channel->sockfd, bufSend, lenBuf, 0);
-    if(rc < 0) {
+    if(rc  < 0) {
         UA_LOG_ERROR(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_SERVER,
-                     "PubSub connection send failed. Send message failed.");
+            "PubSub connection send failed. Send message failed.");
         UA_free(bufSend);
         return UA_STATUSCODE_BADINTERNALERROR;
     }
@@ -448,9 +439,8 @@ UA_PubSubChannelEthernet_close(UA_PubSubChannel *channel) {
  */
 static UA_PubSubChannel *
 TransportLayerEthernet_addChannel(UA_PubSubConnectionConfig *connectionConfig) {
-    UA_LOG_INFO(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_USERLAND,
-                "PubSub channel requested");
-    UA_PubSubChannel *pubSubChannel = UA_PubSubChannelEthernet_open(connectionConfig);
+    UA_LOG_INFO(pubsub_ethernet_plugin_logger, UA_LOGCATEGORY_USERLAND, "PubSub channel requested");
+    UA_PubSubChannel * pubSubChannel = UA_PubSubChannelEthernet_open(connectionConfig);
     if(pubSubChannel) {
         pubSubChannel->regist = UA_PubSubChannelEthernet_regist;
         pubSubChannel->unregist = UA_PubSubChannelEthernet_unregist;

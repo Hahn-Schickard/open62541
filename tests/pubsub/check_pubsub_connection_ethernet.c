@@ -33,8 +33,8 @@ setup(void) {
     UA_ServerConfig *config = UA_Server_getConfig(server);
     UA_ServerConfig_setDefault(config);
 
-    config->pubsubTransportLayers =
-        (UA_PubSubTransportLayer *)UA_malloc(sizeof(UA_PubSubTransportLayer));
+    config->pubsubTransportLayers = (UA_PubSubTransportLayer *)
+        UA_malloc(sizeof(UA_PubSubTransportLayer));
     config->pubsubTransportLayers[0] = UA_PubSubTransportLayerEthernet(&config->logger);
     config->pubsubTransportLayersSize++;
     UA_Server_run_startup(server);
