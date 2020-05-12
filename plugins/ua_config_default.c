@@ -179,7 +179,7 @@ setDefaultConfig(UA_ServerConfig *conf) {
 
     /* Certificate Verification that accepts every certificate. Can be
      * overwritten when the policy is specialized. */
-    UA_CertificateVerification_AcceptAll(&conf->certificateVerification);
+    UA_CertificateVerification_AcceptAll(&conf->logger, &conf->certificateVerification);
 
     /* * Global Node Lifecycle * */
     /* conf->nodeLifecycle.constructor = NULL; */
@@ -639,7 +639,7 @@ UA_ServerConfig_setDefaultWithSecurityPolicies(UA_ServerConfig *conf,
         return retval;
     }
 
-    retval = UA_CertificateVerification_Trustlist(&conf->certificateVerification,
+    retval = UA_CertificateVerification_Trustlist(&conf->logger, &conf->certificateVerification,
                                                   trustList, trustListSize,
                                                   issuerList, issuerListSize,
                                                   revocationList, revocationListSize);
@@ -705,7 +705,7 @@ UA_ClientConfig_setDefault(UA_ClientConfig *config) {
 
     /* Certificate Verification that accepts every certificate. Can be
      * overwritten when the policy is specialized. */
-    UA_CertificateVerification_AcceptAll(&config->certificateVerification);
+    UA_CertificateVerification_AcceptAll(&config->logger, &config->certificateVerification);
     UA_LOG_WARNING(&config->logger, UA_LOGCATEGORY_USERLAND,
                    "AcceptAll Certificate Verification. "
                    "Any remote certificate will be accepted.");
@@ -764,7 +764,7 @@ UA_ClientConfig_setDefaultEncryption(UA_ClientConfig *config,
     if(retval != UA_STATUSCODE_GOOD)
         return retval;
 
-    retval = UA_CertificateVerification_Trustlist(&config->certificateVerification,
+    retval = UA_CertificateVerification_Trustlist(&config->logger, &config->certificateVerification,
                                                   trustList, trustListSize,
                                                   NULL, 0,
                                                   revocationList, revocationListSize);
