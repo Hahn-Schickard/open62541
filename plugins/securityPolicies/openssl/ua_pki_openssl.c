@@ -12,12 +12,14 @@ modification history
 
 #include <open62541/server_config.h>
 #include <open62541/plugin/pki_default.h>
-#include <open62541/plugin/log_stdout.h>
+#include <open62541/plugin/log.h>
 
 #ifdef UA_ENABLE_ENCRYPTION_OPENSSL
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 #include <openssl/x509v3.h>
+
+static const UA_Logger *pki_plugin_logger = NULL;
 
 typedef struct {
     /* 
@@ -236,7 +238,7 @@ UA_ReloadCertFromFolder (CertContext * ctx) {
     UA_ByteString_init (&strCert);
 
     if (ctx->trustListFolder.length > 0) {
-        UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Reloading the trust-list"); 
+        UA_LOG_INFO(pki_plugin_logger, UA_LOGCATEGORY_SERVER, "Reloading the trust-list"); 
 
         sk_X509_pop_free (ctx->skTrusted, X509_free);
         ctx->skTrusted = sk_X509_new_null();
@@ -257,12 +259,12 @@ UA_ReloadCertFromFolder (CertContext * ctx) {
             }
             ret = UA_loadCertFromFile (certFile, &strCert);
             if (ret != UA_STATUSCODE_GOOD) {
-                UA_LOG_INFO (UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
+                UA_LOG_INFO (pki_plugin_logger, UA_LOGCATEGORY_SERVER,
                             "Failed to load the certificate file %s", certFile); 
                 continue;  /* continue or return ? */
             }
             if (UA_skTrusted_Cert2X509 (&strCert, 1, ctx) != UA_STATUSCODE_GOOD) {
-                UA_LOG_INFO (UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
+                UA_LOG_INFO (pki_plugin_logger, UA_LOGCATEGORY_SERVER,
                             "Failed to decode the certificate file %s", certFile);
                 UA_ByteString_clear (&strCert);
                 continue;  /* continue or return ? */
@@ -272,7 +274,7 @@ UA_ReloadCertFromFolder (CertContext * ctx) {
     }
 
     if (ctx->issuerListFolder.length > 0) {
-        UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Reloading the issuer-list");    
+        UA_LOG_INFO(pki_plugin_logger, UA_LOGCATEGORY_SERVER, "Reloading the issuer-list");    
 
         sk_X509_pop_free (ctx->skIssue, X509_free);
         ctx->skIssue = sk_X509_new_null();
@@ -292,12 +294,12 @@ UA_ReloadCertFromFolder (CertContext * ctx) {
             }
             ret = UA_loadCertFromFile (certFile, &strCert);
             if (ret != UA_STATUSCODE_GOOD) {
-                UA_LOG_INFO (UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
+                UA_LOG_INFO (pki_plugin_logger, UA_LOGCATEGORY_SERVER,
                             "Failed to load the certificate file %s", certFile); 
                 continue;  /* continue or return ? */
             }
             if (UA_skIssuer_Cert2X509 (&strCert, 1, ctx) != UA_STATUSCODE_GOOD) {
-                UA_LOG_INFO (UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
+                UA_LOG_INFO (pki_plugin_logger, UA_LOGCATEGORY_SERVER,
                             "Failed to decode the certificate file %s", certFile);                 
                 UA_ByteString_clear (&strCert);
                 continue;  /* continue or return ? */
@@ -307,7 +309,7 @@ UA_ReloadCertFromFolder (CertContext * ctx) {
     }
 
     if (ctx->revocationListFolder.length > 0) {
-        UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Reloading the revocation-list");   
+        UA_LOG_INFO(pki_plugin_logger, UA_LOGCATEGORY_SERVER, "Reloading the revocation-list");   
 
         sk_X509_CRL_pop_free (ctx->skCrls, X509_CRL_free);
         ctx->skCrls = sk_X509_CRL_new_null();    
@@ -327,12 +329,12 @@ UA_ReloadCertFromFolder (CertContext * ctx) {
             }
             ret = UA_loadCertFromFile (certFile, &strCert);
             if (ret != UA_STATUSCODE_GOOD) {
-                UA_LOG_INFO (UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
+                UA_LOG_INFO (pki_plugin_logger, UA_LOGCATEGORY_SERVER,
                             "Failed to load the revocation file %s", certFile);                 
                 continue;  /* continue or return ? */
             }
             if (UA_skCrls_Cert2X509 (&strCert, 1, ctx) != UA_STATUSCODE_GOOD) {
-                UA_LOG_INFO (UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
+                UA_LOG_INFO (pki_plugin_logger, UA_LOGCATEGORY_SERVER,
                             "Failed to decode the revocation file %s", certFile);                                 
                 UA_ByteString_clear (&strCert);
                 continue;  /* continue or return ? */
@@ -527,7 +529,8 @@ UA_CertificateVerification_VerifyApplicationURI (void *                verificat
 /* main entry */
 
 UA_StatusCode
-UA_CertificateVerification_Trustlist(UA_CertificateVerification * cv,
+UA_CertificateVerification_Trustlist(const UA_Logger *logger, 
+                                     UA_CertificateVerification * cv,
                                      const UA_ByteString *        certificateTrustList,
                                      size_t                       certificateTrustListSize,
                                      const UA_ByteString *        certificateIssuerList,
@@ -548,6 +551,8 @@ UA_CertificateVerification_Trustlist(UA_CertificateVerification * cv,
     if (ret != UA_STATUSCODE_GOOD) {
         return ret;
     }
+
+    pki_plugin_logger = logger;
 
     cv->verifyApplicationURI = UA_CertificateVerification_VerifyApplicationURI;
     cv->clear = UA_CertificateVerification_clear;
@@ -590,7 +595,8 @@ errout:
 
 #ifdef __linux__ /* Linux only so far */
 UA_StatusCode
-UA_CertificateVerification_CertFolders(UA_CertificateVerification * cv,
+UA_CertificateVerification_CertFolders(const UA_Logger *logger, 
+                                       UA_CertificateVerification * cv,
                                        const char *                 trustListFolder,
                                        const char *                 issuerListFolder,
                                        const char *                 revocationListFolder) {
@@ -608,6 +614,8 @@ UA_CertificateVerification_CertFolders(UA_CertificateVerification * cv,
         return ret;
     }
 
+    pki_plugin_logger = logger;
+    
     cv->verifyApplicationURI = UA_CertificateVerification_VerifyApplicationURI;
     cv->clear = UA_CertificateVerification_clear;
     cv->context = context;

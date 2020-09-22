@@ -41,7 +41,7 @@ UA_DURATIONRANGE(UA_Duration min, UA_Duration max) {
 }
 
 UA_Server *
-UA_Server_new() {
+UA_Server_new(void) {
     UA_ServerConfig config;
     memset(&config, 0, sizeof(UA_ServerConfig));
     /* Set a default logger and NodeStore for the initialization */
@@ -114,7 +114,7 @@ static UA_UsernamePasswordLogin usernamePasswords[2] = {
     {UA_STRING_STATIC("user2"), UA_STRING_STATIC("password1")}};
 
 static UA_StatusCode
-setDefaultConfig(UA_ServerConfig *conf) {
+setDefaultConfig(UA_ServerConfig *conf, const UA_Logger *custom_logger) {
     if (!conf)
         return UA_STATUSCODE_BADINVALIDARGUMENT;
 
@@ -125,8 +125,12 @@ setDefaultConfig(UA_ServerConfig *conf) {
     conf->nThreads = 1;
 
     /* Allow user to set his own logger */
-    if (!conf->logger.log)
+    if (!conf->logger.log && custom_logger == NULL){
         conf->logger = UA_Log_Stdout_;
+    } else {
+        const UA_Logger logger_instance = {custom_logger->log, custom_logger->context, custom_logger->clear};
+        conf->logger = logger_instance;
+    }
 
     conf->shutdownDelay = 0.0;
 
@@ -179,7 +183,7 @@ setDefaultConfig(UA_ServerConfig *conf) {
 
     /* Certificate Verification that accepts every certificate. Can be
      * overwritten when the policy is specialized. */
-    UA_CertificateVerification_AcceptAll(&conf->certificateVerification);
+    UA_CertificateVerification_AcceptAll(&conf->logger, &conf->certificateVerification);
 
     /* * Global Node Lifecycle * */
     /* conf->nodeLifecycle.constructor = NULL; */
@@ -250,8 +254,8 @@ setDefaultConfig(UA_ServerConfig *conf) {
 }
 
 UA_EXPORT UA_StatusCode
-UA_ServerConfig_setBasics(UA_ServerConfig* conf) {
-    UA_StatusCode res = setDefaultConfig(conf);
+UA_ServerConfig_setBasics(UA_ServerConfig* conf, const UA_Logger *custom_logger) {
+    UA_StatusCode res = setDefaultConfig(conf, custom_logger);
     UA_LOG_WARNING(&conf->logger, UA_LOGCATEGORY_USERLAND,
                    "AcceptAll Certificate Verification. "
                    "Any remote certificate will be accepted.");
@@ -427,11 +431,12 @@ UA_EXPORT UA_StatusCode
 UA_ServerConfig_setMinimalCustomBuffer(UA_ServerConfig *config, UA_UInt16 portNumber,
                                        const UA_ByteString *certificate,
                                        UA_UInt32 sendBufferSize,
-                                       UA_UInt32 recvBufferSize) {
+                                       UA_UInt32 recvBufferSize, 
+                                       const UA_Logger *custom_logger) {
     if(!config)
         return UA_STATUSCODE_BADINVALIDARGUMENT;
 
-    UA_StatusCode retval = setDefaultConfig(config);
+    UA_StatusCode retval = setDefaultConfig(config, custom_logger);
     if(retval != UA_STATUSCODE_GOOD) {
         UA_ServerConfig_clean(config);
         return retval;
@@ -632,14 +637,15 @@ UA_ServerConfig_setDefaultWithSecurityPolicies(UA_ServerConfig *conf,
                                                const UA_ByteString *issuerList,
                                                size_t issuerListSize,
                                                const UA_ByteString *revocationList,
-                                               size_t revocationListSize) {
-    UA_StatusCode retval = setDefaultConfig(conf);
+                                               size_t revocationListSize, 
+                                               const UA_Logger *custom_logger) {
+    UA_StatusCode retval = setDefaultConfig(conf, custom_logger);
     if(retval != UA_STATUSCODE_GOOD) {
         UA_ServerConfig_clean(conf);
         return retval;
     }
 
-    retval = UA_CertificateVerification_Trustlist(&conf->certificateVerification,
+    retval = UA_CertificateVerification_Trustlist(&conf->logger, &conf->certificateVerification,
                                                   trustList, trustListSize,
                                                   issuerList, issuerListSize,
                                                   revocationList, revocationListSize);
@@ -705,7 +711,7 @@ UA_ClientConfig_setDefault(UA_ClientConfig *config) {
 
     /* Certificate Verification that accepts every certificate. Can be
      * overwritten when the policy is specialized. */
-    UA_CertificateVerification_AcceptAll(&config->certificateVerification);
+    UA_CertificateVerification_AcceptAll(&config->logger, &config->certificateVerification);
     UA_LOG_WARNING(&config->logger, UA_LOGCATEGORY_USERLAND,
                    "AcceptAll Certificate Verification. "
                    "Any remote certificate will be accepted.");
@@ -763,7 +769,7 @@ UA_ClientConfig_setDefaultEncryption(UA_ClientConfig *config,
     if(retval != UA_STATUSCODE_GOOD)
         return retval;
 
-    retval = UA_CertificateVerification_Trustlist(&config->certificateVerification,
+    retval = UA_CertificateVerification_Trustlist(&config->logger, &config->certificateVerification,
                                                   trustList, trustListSize,
                                                   NULL, 0,
                                                   revocationList, revocationListSize);

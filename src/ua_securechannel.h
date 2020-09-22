@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. 
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  *    Copyright 2014-2020 (c) Fraunhofer IOSB (Author: Julius Pfrommer)
  *    Copyright 2017 (c) Florian Palm
@@ -48,17 +48,17 @@ typedef struct UA_Chunk {
     UA_ByteString bytes;
     UA_MessageType messageType;
     UA_ChunkType chunkType;
-    UA_Boolean copied; /* Do the bytes point to a buffer from the network or was
-                        * memory allocated for the chunk separately */
+    UA_Boolean copied;    /* Do the bytes point to a buffer from the network or was
+                           * memory allocated for the chunk separately */
     UA_Boolean decrypted; /* The chunk has been decrypted */
 } UA_Chunk;
 
 typedef SIMPLEQ_HEAD(UA_ChunkQueue, UA_Chunk) UA_ChunkQueue;
 
 struct UA_SecureChannel {
-    UA_SecureChannelState   state;
-    UA_MessageSecurityMode  securityMode;
-    UA_ConnectionConfig     config;
+    UA_SecureChannelState state;
+    UA_MessageSecurityMode securityMode;
+    UA_ConnectionConfig config;
 
     /* Rules for revolving the token with a renew OPN request: The client is
      * allowed to accept messages with the old token until the OPN response has
@@ -95,16 +95,17 @@ struct UA_SecureChannel {
      * queue. Then they are processed in order. This ensures that processing
      * buffers is reentrant with the correct processing order. (This has lead to
      * problems in the client in the past.) */
-    UA_ChunkQueue completeChunks; /* Received full chunks that have not been
-                                   * processed so far */
+    UA_ChunkQueue completeChunks;  /* Received full chunks that have not been
+                                    * processed so far */
     UA_ByteString incompleteChunk; /* A half-received chunk (TCP is a
                                     * streaming protocol) is stored here */
 };
 
-void UA_SecureChannel_init(UA_SecureChannel *channel,
-                           const UA_ConnectionConfig *config);
+void 
+UA_SecureChannel_init(UA_SecureChannel *channel, const UA_ConnectionConfig *config);
 
-void UA_SecureChannel_close(UA_SecureChannel *channel);
+void
+UA_SecureChannel_close(UA_SecureChannel *channel);
 
 /* Process the remote configuration in the HEL/ACK handshake. The connection
  * config is initialized with the local settings. */
@@ -121,9 +122,12 @@ UA_SecureChannel_setSecurityPolicy(UA_SecureChannel *channel,
 void
 UA_SecureChannel_deleteBuffered(UA_SecureChannel *channel);
 
+void
+UA_SecureChannel_deleteMembers(UA_SecureChannel *channel);
+
 /* Generates new keys and sets them in the channel context */
 UA_StatusCode
-UA_SecureChannel_generateNewKeys(UA_SecureChannel* channel);
+UA_SecureChannel_generateNewKeys(UA_SecureChannel *channel);
 
 /* Wrapper function for generating a local nonce for the supplied channel. Uses
  * the random generator of the channels security policy to allocate and generate
@@ -188,14 +192,19 @@ UA_MessageContext_finish(UA_MessageContext *mc);
 void
 UA_MessageContext_abort(UA_MessageContext *mc);
 
+/* Cleans up the send buffer for a given connection, used by _abort and similar functions,
+ * that do not use UA_MessageContext */
+void
+UA_Connection_releaseSendBuffer(UA_Connection *const connection, UA_ByteString *buffer);
+
 /**
  * Receive Message
  * --------------- */
 
 typedef void
 (UA_ProcessMessageCallback)(void *application, UA_SecureChannel *channel,
-                            UA_MessageType messageType, UA_UInt32 requestId,
-                            UA_ByteString *message);
+                                        UA_MessageType messageType, UA_UInt32 requestId,
+                                        UA_ByteString *message);
 
 /* Process a received buffer. The callback function is called with the message
  * body if the message is complete. The message is removed afterwards. Returns
@@ -237,7 +246,7 @@ hideBytesAsym(const UA_SecureChannel *channel, UA_Byte **buf_start,
 UA_StatusCode
 decryptAndVerifyChunk(const UA_SecureChannel *channel,
                       const UA_SecurityPolicyCryptoModule *cryptoModule,
-                      UA_MessageType messageType, UA_ByteString *chunk,
+                      UA_MessageType messageType, UA_ByteString *chunk, 
                       size_t offset);
 
 size_t
@@ -267,8 +276,8 @@ padChunkAsym(UA_SecureChannel *channel, const UA_ByteString *buf,
              size_t securityHeaderLength, UA_Byte **buf_pos);
 
 UA_StatusCode
-signAndEncryptAsym(UA_SecureChannel *channel, size_t preSignLength,
-                   UA_ByteString *buf, size_t securityHeaderLength,
+signAndEncryptAsym(UA_SecureChannel *channel, size_t preSignLength, 
+                   UA_ByteString *buf, size_t securityHeaderLength, 
                    size_t totalLength);
 
 void
@@ -292,58 +301,58 @@ encryptChunkSym(UA_MessageContext *const messageContext, size_t totalLength);
  * zero arguments. So we add a dummy argument that is not printed (%.0s is
  * string of length zero). */
 
-#define UA_LOG_TRACE_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)              \
-    UA_LOG_TRACE(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                        \
-                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",     \
-                 ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0), \
+#define UA_LOG_TRACE_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)                         \
+    UA_LOG_TRACE(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                                   \
+                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",              \
+                 ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0),     \
                  (CHANNEL)->securityToken.channelId, __VA_ARGS__)
 
-#define UA_LOG_TRACE_CHANNEL(LOGGER, CHANNEL, ...)        \
+#define UA_LOG_TRACE_CHANNEL(LOGGER, CHANNEL, ...)                                       \
     UA_MACRO_EXPAND(UA_LOG_TRACE_CHANNEL_INTERNAL(LOGGER, CHANNEL, __VA_ARGS__, ""))
 
-#define UA_LOG_DEBUG_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)              \
-    UA_LOG_DEBUG(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                        \
-                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",     \
-                 ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0), \
+#define UA_LOG_DEBUG_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)                         \
+    UA_LOG_DEBUG(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                                   \
+                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",              \
+                 ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0),     \
                  (CHANNEL)->securityToken.channelId, __VA_ARGS__)
 
-#define UA_LOG_DEBUG_CHANNEL(LOGGER, CHANNEL, ...)        \
+#define UA_LOG_DEBUG_CHANNEL(LOGGER, CHANNEL, ...)                                       \
     UA_MACRO_EXPAND(UA_LOG_DEBUG_CHANNEL_INTERNAL(LOGGER, CHANNEL, __VA_ARGS__, ""))
 
-#define UA_LOG_INFO_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)               \
-    UA_LOG_INFO(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                         \
-                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",     \
-                 ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0), \
-                 (CHANNEL)->securityToken.channelId, __VA_ARGS__)
+#define UA_LOG_INFO_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)                          \
+    UA_LOG_INFO(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                                    \
+                "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",               \
+                ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0),      \
+                (CHANNEL)->securityToken.channelId, __VA_ARGS__)
 
-#define UA_LOG_INFO_CHANNEL(LOGGER, CHANNEL, ...)        \
+#define UA_LOG_INFO_CHANNEL(LOGGER, CHANNEL, ...)                                        \
     UA_MACRO_EXPAND(UA_LOG_INFO_CHANNEL_INTERNAL(LOGGER, CHANNEL, __VA_ARGS__, ""))
 
-#define UA_LOG_WARNING_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)            \
-    UA_LOG_WARNING(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                      \
-                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",     \
-                 ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0), \
-                 (CHANNEL)->securityToken.channelId, __VA_ARGS__)
+#define UA_LOG_WARNING_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)                       \
+    UA_LOG_WARNING(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                                 \
+                   "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",            \
+                   ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0),   \
+                   (CHANNEL)->securityToken.channelId, __VA_ARGS__)
 
-#define UA_LOG_WARNING_CHANNEL(LOGGER, CHANNEL, ...)        \
+#define UA_LOG_WARNING_CHANNEL(LOGGER, CHANNEL, ...)                                     \
     UA_MACRO_EXPAND(UA_LOG_WARNING_CHANNEL_INTERNAL(LOGGER, CHANNEL, __VA_ARGS__, ""))
 
-#define UA_LOG_ERROR_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)              \
-    UA_LOG_ERROR(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                        \
-                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",     \
-                 ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0), \
+#define UA_LOG_ERROR_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)                         \
+    UA_LOG_ERROR(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                                   \
+                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",              \
+                 ((CHANNEL)->connection ? (int)((CHANNEL)->connection->sockfd) : 0),     \
                  (CHANNEL)->securityToken.channelId, __VA_ARGS__)
 
-#define UA_LOG_ERROR_CHANNEL(LOGGER, CHANNEL, ...)        \
+#define UA_LOG_ERROR_CHANNEL(LOGGER, CHANNEL, ...)                                       \
     UA_MACRO_EXPAND(UA_LOG_ERROR_CHANNEL_INTERNAL(LOGGER, CHANNEL, __VA_ARGS__, ""))
 
-#define UA_LOG_FATAL_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)              \
-    UA_LOG_FATAL(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                        \
-                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",     \
-                 ((CHANNEL)->connection ? (CHANNEL)->connection->sockfd : 0), \
+#define UA_LOG_FATAL_CHANNEL_INTERNAL(LOGGER, CHANNEL, MSG, ...)                         \
+    UA_LOG_FATAL(LOGGER, UA_LOGCATEGORY_SECURECHANNEL,                                   \
+                 "Connection %i | SecureChannel %" PRIi32 " | " MSG "%.0s",              \
+                 ((CHANNEL)->connection ? (CHANNEL)->connection->sockfd : 0),            \
                  (CHANNEL)->securityToken.channelId, __VA_ARGS__)
 
-#define UA_LOG_FATAL_CHANNEL(LOGGER, CHANNEL, ...)        \
+#define UA_LOG_FATAL_CHANNEL(LOGGER, CHANNEL, ...)                                       \
     UA_MACRO_EXPAND(UA_LOG_FATAL_CHANNEL_INTERNAL(LOGGER, CHANNEL, __VA_ARGS__, ""))
 
 _UA_END_DECLS
